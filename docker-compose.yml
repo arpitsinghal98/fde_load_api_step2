@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  fde-loads-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - API_KEY=${API_KEY}
+      - LOADS_CSV=${LOADS_CSV}
+      - FMCSA_API_KEY=${FMCSA_API_KEY}
+      - FMCSA_API_URL=${FMCSA_API_URL}
+    volumes:
+      - ./Sample_Loads_Dataset__FDE_.csv:/app/Sample_Loads_Dataset__FDE_.csv
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
