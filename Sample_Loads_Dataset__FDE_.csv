@@ -1,0 +1,11 @@
+load_id,origin,destination,pickup_datetime,delivery_datetime,equipment_type,loadboard_rate,notes,weight,commodity_type,num_of_pieces,miles,dimensions
+FDE-1001,"Chicago, IL","Dallas, TX",2025-09-09T08:00:00,2025-09-11T18:00:00,Dry Van,2100.0,No driver assist. FCFS 8am-2pm. 53' trailer preferred.,38000,Consumer Packaged Goods,26,968,Standard pallets; 48x40; full truckload
+FDE-1002,"Atlanta, GA","Orlando, FL",2025-09-09T12:00:00,2025-09-10T14:00:00,Reefer,1300.0,Reefer set to 34°F. Live unload.,32000,Produce,20,438,Mixed pallets; temperature-controlled
+FDE-1003,"Los Angeles, CA","Phoenix, AZ",2025-09-09T14:00:00,2025-09-10T16:00:00,Flatbed,1150.0,Tarp required. Straps & chains. 8am pickup appointment.,42000,Steel Coils,8,373,Coils; 6-7 ft diameter
+FDE-1004,"Newark, NJ","Boston, MA",2025-09-10T10:00:00,2025-09-11T02:00:00,Dry Van,950.0,Residential delivery with liftgate required.,18000,Furniture,12,226,Bulk furniture; blanket wrap
+FDE-1005,"Memphis, TN","Denver, CO",2025-09-10T13:00:00,2025-09-12T20:00:00,Dry Van,2600.0,Must scale under 80k. Driver assist at delivery.,44000,Paper Goods,30,1083,Standard pallets; 53' trailer
+FDE-1006,"Seattle, WA","Boise, ID",2025-09-11T09:00:00,2025-09-12T02:00:00,Reefer,1400.0,Frozen; -10°F setpoint; reefer fuel full at pickup.,36000,Frozen Foods,24,497,Palletized; frozen
+FDE-1007,"Houston, TX","Kansas City, MO",2025-09-11T11:00:00,2025-09-12T13:00:00,Flatbed,1700.0,Lumber. No tarp. Side load with forklift.,41000,Lumber,18,744,Bundle lumber; 16-20 ft
+FDE-1008,"Indianapolis, IN","Columbus, OH",2025-09-12T08:00:00,2025-09-12T16:00:00,Dry Van,700.0,Drop & hook at pickup. Live unload.,28000,Electronics,22,176,Stackable pallets
+FDE-1009,"Miami, FL","Savannah, GA",2025-09-12T14:00:00,2025-09-13T04:00:00,Dry Van,900.0,Port pickup. TWIC required.,35000,Apparel,25,486,Cartons on pallets
+FDE-1010,"Salt Lake City, UT","Reno, NV",2025-09-13T10:00:00,2025-09-14T00:00:00,Dry Van,950.0,Hazmat endorsement required.,26000,Chemicals (Non-bulk),16,518,Drums; secured upright
