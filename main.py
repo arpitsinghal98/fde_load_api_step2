@@ -6,6 +6,8 @@ from pydantic import BaseModel
 import pandas as pd
 from dotenv import load_dotenv
 import requests
+import math
+from pydantic import Field, validator
 
 
 load_dotenv()
@@ -15,6 +17,37 @@ API_KEY = os.getenv("API_KEY", "")
 CSV_PATH = os.getenv("LOADS_CSV", "Sample_Loads_Dataset__FDE_.csv")
 FMCSA_API_URL = os.getenv("FMCSA_API_URL", "https://mobile.fmcsa.dot.gov/qc/services/carriers/" )
 FMCSA_API_KEY = os.getenv("FMCSA_API_KEY", "")
+
+class EvalIn(BaseModel):
+    @validator("last_broker_offer", pre=True)
+    def empty_str_to_none(cls, v):
+        if v == "":
+            return None
+        return v
+    posted_rate: float = Field(..., gt=0)
+    carrier_offer: float = Field(..., gt=0)
+    rounds_used: int = Field(0, ge=0)
+    last_broker_offer: Optional[float] = Field(None, description="Null on first turn")
+
+class EvalOut(BaseModel):
+    decision: str                       # "accept" | "counter" | "decline"
+    agreed_rate: Optional[float]
+    next_broker_offer: Optional[float]
+    rounds_used_next: int
+    reason: str
+
+
+TARGET_PCT       = float(os.getenv("TARGET_PCT", "0.03"))    # +3% over posted
+CEILING_PCT_MAX  = float(os.getenv("CEILING_PCT_MAX", "0.10"))  # +10% max
+CEILING_ABS_MAX  = float(os.getenv("CEILING_ABS_MAX", "250"))   # or +$250 cap
+MIN_INCREMENT    = float(os.getenv("MIN_INCREMENT", "25"))   # smallest step up
+ROUND_INCREMENT  = float(os.getenv("ROUND_INCREMENT", "25")) # round outputs
+
+def round_to_inc(x: float, inc: float) -> float:
+    return round(x / inc) * inc
+
+def clamp(x: float, lo: float, hi: float) -> float:
+    return max(lo, min(x, hi))
 
 app = FastAPI(title="FDE Loads API", version="1.0.0")
 
@@ -184,6 +217,88 @@ def get_loads(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving loads: {str(e)}")
+
+
+
+# Negotiation endpoint (simple percentage-based)
+@app.post("/offers/evaluate", response_model=EvalOut)
+def evaluate(payload: EvalIn, x_api_key: str = Header(..., alias="X-API-Key")):
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    round_num = payload.rounds_used + 1
+    actual_rate = payload.posted_rate
+    carrier_offer = payload.carrier_offer
+    prev_counter = payload.last_broker_offer
+
+    print(f"[DEBUG] round_num: {round_num}")
+    print(f"[DEBUG] actual_rate: {actual_rate}")
+    print(f"[DEBUG] carrier_offer: {carrier_offer}")
+    print(f"[DEBUG] prev_counter: {prev_counter}")
+
+    if round_num < 1 or round_num > 3:
+        print("[DEBUG] Invalid round number.")
+        return EvalOut(
+            decision="invalid",
+            agreed_rate=None,
+            next_broker_offer=None,
+            rounds_used_next=round_num,
+            reason="Invalid round number."
+        )
+
+
+    # Use prev_counter if present and greater than actual_rate, else use actual_rate for gap calculation
+    base_offer = actual_rate
+    if prev_counter is not None and prev_counter > actual_rate:
+        base_offer = prev_counter
+    print(f"[DEBUG] base_offer used for gap: {base_offer}")
+
+    if round_num == 1:
+        gap = carrier_offer - base_offer
+        print(f"[DEBUG] gap (carrier_offer - base_offer): {gap}")
+        counter_rate = base_offer + gap * 0.13
+        print(f"[DEBUG] counter_rate (base_offer + gap * 0.13): {counter_rate}")
+    elif round_num == 2:
+        if prev_counter is None:
+            print("[DEBUG] Missing previous counter for round 2.")
+            return EvalOut(
+                decision="invalid",
+                agreed_rate=None,
+                next_broker_offer=None,
+                rounds_used_next=round_num,
+                reason="Missing previous counter for round 2."
+            )
+        gap = carrier_offer - base_offer
+        print(f"[DEBUG] gap (carrier_offer - base_offer): {gap}")
+        counter_rate = base_offer + gap * 0.07
+        print(f"[DEBUG] counter_rate (base_offer + gap * 0.07): {counter_rate}")
+    else:  # Round 3
+        if prev_counter is None:
+            print("[DEBUG] Missing previous counter for round 3.")
+            return EvalOut(
+                decision="invalid",
+                agreed_rate=None,
+                next_broker_offer=None,
+                rounds_used_next=round_num,
+                reason="Missing previous counter for round 3."
+            )
+        gap = carrier_offer - base_offer
+        print(f"[DEBUG] gap (carrier_offer - base_offer): {gap}")
+        counter_rate = base_offer + gap * 0.04
+        print(f"[DEBUG] counter_rate (base_offer + gap * 0.04): {counter_rate}")
+
+    counter_rate = round(counter_rate)
+    print(f"[DEBUG] counter_rate (rounded): {counter_rate}")
+    decision = "counter-final" if round_num == 3 else "counter"
+    print(f"[DEBUG] decision: {decision}")
+
+    return EvalOut(
+        decision=decision,
+        agreed_rate=None,
+        next_broker_offer=counter_rate,
+        rounds_used_next=round_num,
+        reason=f"Simple percentage-based negotiation: round {round_num}."
+    )
 
 # Create a handler for Vercel
 def handler(request):
